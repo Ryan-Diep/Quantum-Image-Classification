@@ -8,37 +8,44 @@ def preprocess_image(data):
     flattened_image = img.flatten()
     return flattened_image / np.linalg.norm(flattened_image)
 
-dev = qml.device("default.qubit", wires=4) 
+def amplitude_encode(dataset_dir):
+    dev = qml.device("default.qubit", wires=4) 
 
-@qml.qnode(dev)
-def circuit(image_data):
-    qml.AmplitudeEmbedding(features=image_data, wires=range(4), normalize=False)
-    return qml.probs(wires=range(4))  
+    @qml.qnode(dev)
+    def circuit(image_data):
+        qml.AmplitudeEmbedding(features=image_data, wires=range(4), normalize=False)
+        return qml.probs(wires=range(4))  
 
-all_probs = np.zeros((1000, 16))
+    all_probs = np.zeros((1000, 16))
+    labels = []
 
-dataset_dir = "quantum_tetris_dataset"
+    dataset_dir = "quantum_tetris_dataset"
 
-os.chdir(dataset_dir)
+    os.chdir(dataset_dir)
 
-for i in range(1000):
-    try:
-        filename = f"tetris_{i:04d}.npy"
-        
-        normalized = preprocess_image(filename)
-        
-        all_probs[i] = circuit(normalized)
-        
-        print(f"Processed {filename} ({i+1}/1000)")
-    
-    except FileNotFoundError:
-        print(f"Missing {filename}, using zeros")
-        all_probs[i] = np.zeros(16) 
+    with open('labels.txt', 'r') as f:
+        for i, line in enumerate(f):
+            if i >= 1000:
+                break
+                
+            try:
+                row = line.strip().split(',')
+                filename = row[0]
+                label = row[1]
+                
+                normalized = preprocess_image(filename)
+                all_probs[i] = circuit(normalized)
+                labels.append(label)
+                
+                #print(f"Processed {filename} ({i+1}/1000)")
+                
+            except FileNotFoundError:
+                print(f"Missing {filename}, using zeros")
+                all_probs[i] = np.zeros(16)
+                labels.append('missing')
 
-np.save("all_tetris_probs.npy", all_probs)
-print("Saved all probabilities to all_tetris_probs.npy")
+    os.chdir('..')
+    np.save("all_tetris_probs.npy", all_probs)
+    np.save("tetris_labels.npy", np.array(labels))
 
-avg_probs = np.mean(all_probs, axis=0)
-print("\nAverage probabilities per state:")
-for j in range(16):
-    print(f"|{j:04b}⟩: {avg_probs[j]:.4f}")
+amplitude_encode("quantum_tetris_dataset")
