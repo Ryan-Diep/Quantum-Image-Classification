@@ -242,6 +242,9 @@ x = np.asarray(test_images)
 y = np.asarray(test_labels)
 print(f"Accuracy from the test data : {np.round(100 * classifier.score(x, y), 2)}%")
 
+with open("16_qcnn_trained_weights.json", "w") as f:
+    json.dump(classifier.weights.tolist(), f)
+
 # Let's see some examples in our dataset
 # fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
 # for i in range(0, 4):
