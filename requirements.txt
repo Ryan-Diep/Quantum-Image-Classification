@@ -1,7 +1,8 @@
-iphython
+ipython
 matplotlib
 numpy
 pylatexenc
 qiskit
 qiskit-machine-learning
 scikit-learn
+pennylane
