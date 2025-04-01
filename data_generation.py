@@ -4,8 +4,12 @@ import os
 import random
 from matplotlib.colors import LinearSegmentedColormap
 
+folder_name = "test_quantum_tetris_dataset"
+
 # Create directory for the dataset
-os.makedirs('quantum_tetris_dataset', exist_ok=True)
+os.makedirs(folder_name, exist_ok=True)
+
+num_images = 20
 
 # Define the Tetris pieces for 4x4 grid
 # Each piece is represented as a list of (row, col) coordinates
@@ -18,6 +22,18 @@ tetris_pieces = {
     'J': [(0,1), (1,1), (2,0), (2,1)],  # J piece
     'S': [(0,1), (0,2), (1,0), (1,1)],  # S piece
     'Z': [(0,0), (0,1), (1,1), (1,2)]   # Z piece
+}
+
+label_mapping = {
+    'I': 0,
+    'I2': 1,
+    'O': 2,
+    'T': 3,
+    'L': 4,
+    'J': 5,
+    'S': 6,
+    'Z': 7,
+    'X': 8  # For non-Tetris shapes
 }
 
 # Function to rotate a piece
@@ -72,7 +88,8 @@ def generate_random_matrix(idx):
     grid = np.zeros((4, 4))
     
     # Decide if it's a Tetris piece or non-Tetris shape
-    is_tetris = random.random() < 0.7  # 70% chance for Tetris pieces
+    # is_tetris = random.random() < 0.7  # 70% chance for Tetris pieces
+    is_tetris = True
     
     if is_tetris:
         # Select a random Tetris piece
@@ -130,41 +147,42 @@ def generate_random_matrix(idx):
 colors = [(0.3, 0, 0.5), (0.5, 0.8, 0), (1, 1, 0)]  # Purple, lime green, yellow
 cmap = LinearSegmentedColormap.from_list('tetris_cmap', colors, N=256)
 
-# Generate and save 1000 matrices
+# Generate and save num_images matrices
 matrices = []
 labels = []
 
-for i in range(1000):
+for i in range(num_images):
     matrix, label = generate_random_matrix(i)
     matrices.append(matrix)
     labels.append(label)
     
     # Save matrix to numpy file
-    np.save(f'quantum_tetris_dataset/tetris_{i:04d}.npy', matrix)
+    np.save(f'{folder_name}/tetris_{i:04d}.npy', matrix)
     
     # Also save a visualization for reference
     plt.figure(figsize=(2, 2))
     plt.imshow(matrix, cmap=cmap)
     plt.title(f'Label: {label}')
     plt.axis('off')
-    plt.savefig(f'quantum_tetris_dataset/tetris_{i:04d}_viz.png')
+    plt.savefig(f'{folder_name}/tetris_{i:04d}_viz.png')
     plt.close()
 
 # Save all matrices and labels to a single file for easy loading
-np.save('quantum_tetris_dataset/all_matrices.npy', np.array(matrices))
-np.save('quantum_tetris_dataset/all_labels.npy', np.array(labels))
+np.save(f'{folder_name}/all_matrices.npy', np.array(matrices))
+np.save(f'{folder_name}/all_labels.npy', np.array(labels))
 
 # Save labels to a text file as well
-with open('quantum_tetris_dataset/labels.txt', 'w') as f:
+with open(f'{folder_name}/labels.txt', 'w') as f:
     for i, label in enumerate(labels):
-        f.write(f'tetris_{i:04d}.npy,{label}\n')
+        numerical_label = label_mapping[label]
+        f.write(f'tetris_{i:04d}.npy,{numerical_label}\n')
 
-print(f"Generated 1000 matrices in the 'quantum_tetris_dataset' folder")
+print(f"Generated num_images matrices in the '{folder_name}' folder")
 
 # Display a few examples
 plt.figure(figsize=(15, 3))
 for i in range(5):
-    idx = random.randint(0, 999)
+    idx = random.randint(0, num_images - 1)
     plt.subplot(1, 5, i+1)
     plt.imshow(matrices[idx], cmap=cmap)
     plt.title(f'Label: {labels[idx]}')

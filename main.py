@@ -12,6 +12,8 @@ from qiskit_machine_learning.utils import algorithm_globals
 from qiskit_machine_learning.algorithms.classifiers import NeuralNetworkClassifier
 from qiskit_machine_learning.neural_networks import EstimatorQNN
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from amplitudeEmbedding import amplitude_encode
 
 algorithm_globals.random_seed = 12345
 estimator = Estimator()
@@ -139,19 +141,25 @@ def generate_dataset(num_images):
                 images[-1][i] = algorithm_globals.random.uniform(0, np.pi / 4)
     return images, labels
 
-images, labels = generate_dataset(50)
 
+print("encode images")
+# images, labels = generate_dataset(50)
+images, labels = amplitude_encode("test_quantum_tetris_dataset")
+print("encoding done")
+
+print("split data")
 train_images, test_images, train_labels, test_labels = train_test_split(
     images, labels, test_size=0.3, random_state=246
 )
+print("finished splitting")
 
-fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
-for i in range(4):
-    ax[i // 2, i % 2].imshow(
-        train_images[i].reshape(4, 4),
-        aspect="equal",
-    )
-plt.subplots_adjust(wspace=0.1, hspace=0.025)
+# fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
+# for i in range(4):
+#     ax[i // 2, i % 2].imshow(
+#         train_images[i].reshape(4, 4),
+#         aspect="equal",
+#     )
+# plt.subplots_adjust(wspace=0.1, hspace=0.025)
 
 feature_map = ZFeatureMap(16)
 
@@ -186,16 +194,28 @@ circuit = QuantumCircuit(16)
 circuit.compose(feature_map, range(16), inplace=True)
 circuit.compose(ansatz, range(16), inplace=True)
 
-observable = SparsePauliOp.from_list([("Z" + "I" * 15 , 1)])
+print("adding observables")
+observables = []
+observables.append(SparsePauliOp.from_list([("Z" + "I" * 15, 1)]))
+observables.append(SparsePauliOp.from_list([("I" + "X" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("ZZ" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("ZX" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("XZ" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("XX" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("YZ" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("ZY" + "I" * 14, 1)]))
+print("finished adding observables")
 
 # we decompose the circuit for the QNN to avoid additional data copying
+print("decompose circuit")
 qnn = EstimatorQNN(
     circuit=circuit.decompose(),
-    observables=observable,
+    observables=observables, 
     input_params=feature_map.parameters,
     weight_params=ansatz.parameters,
     estimator=estimator,
 )
+print("finished decomposing circuit")
 
 # circuit.draw("mpl", style="clifford")
 
@@ -212,6 +232,7 @@ def callback_graph(weights, obj_func_eval):
 num_params = len(ansatz.parameters)
 
 # Generate random  point
+print("generate random point")
 initial_point = np.random.uniform(-np.pi, np.pi, num_params)
 
 with open("11_qcnn_initial_point.json", "w") as f:
@@ -219,6 +240,7 @@ with open("11_qcnn_initial_point.json", "w") as f:
 
 with open("11_qcnn_initial_point.json", "r") as f:
     initial_point = json.load(f)
+print("finished generating initial point")
 
 classifier = NeuralNetworkClassifier(
     qnn,
@@ -227,19 +249,28 @@ classifier = NeuralNetworkClassifier(
     initial_point=initial_point,
 )
 
+print("running training images")
 x = np.asarray(train_images)
-y = np.asarray(train_labels)
+enc = OneHotEncoder(sparse_output=False)
+y = enc.fit_transform(np.array(train_labels).reshape(-1, 1))
+print("finished running training images")
 
+print("fit training data")
 objective_func_vals = []
 plt.rcParams["figure.figsize"] = (12, 6)
 classifier.fit(x, y)
+print("finished fitting training data")
 
 # score classifier
 print(f"Accuracy from the train data : {np.round(100 * classifier.score(x, y), 2)}%")
- 
+
+print("running test data") 
 y_predict = classifier.predict(test_images)
 x = np.asarray(test_images)
-y = np.asarray(test_labels)
+y_test_pred = classifier.predict(test_images)
+test_accuracy = np.sum(np.argmax(y_test_pred, axis=1) == test_labels) / len(test_labels)
+print("finished fitting test data")
+
 print(f"Accuracy from the test data : {np.round(100 * classifier.score(x, y), 2)}%")
 
 with open("16_qcnn_trained_weights.json", "w") as f:
