@@ -10,6 +10,7 @@ from qiskit.primitives import StatevectorEstimator as Estimator
 from qiskit_machine_learning.optimizers import COBYLA
 from qiskit_machine_learning.utils import algorithm_globals
 from qiskit_machine_learning.algorithms.classifiers import NeuralNetworkClassifier
+from qiskit_machine_learning.algorithms import VQC
 from qiskit_machine_learning.neural_networks import EstimatorQNN
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
@@ -98,50 +99,6 @@ sinks = [2, 3]
 circuit = pool_layer(sources, sinks, "θ")
 # circuit.decompose().draw("mpl", style="clifford")
 
-def generate_dataset(num_images):
-    images = []
-    labels = []
-    
-    # Horizontal lines (class -1)
-    hor_array = np.zeros((12, 16)) 
-    # Vertical lines (class 1)
-    ver_array = np.zeros((12, 16)) 
-
-    # Generate horizontal line patterns
-    j = 0
-    for row in range(4):
-        for col in range(3):  
-            idx = row * 4 + col
-            hor_array[j][idx] = np.pi / 2
-            hor_array[j][idx + 1] = np.pi / 2
-            j += 1
-
-    j = 0
-    for col in range(4):
-        for row in range(3):  
-            idx1 = row * 4 + col
-            idx2 = (row + 1) * 4 + col
-            ver_array[j][idx1] = np.pi / 2
-            ver_array[j][idx2] = np.pi / 2
-            j += 1
-
-    for n in range(num_images):
-        rng = algorithm_globals.random.integers(0, 2)
-        if rng == 0:
-            labels.append(-1)
-            random_image = algorithm_globals.random.integers(0, 12)
-            images.append(np.array(hor_array[random_image]))
-        elif rng == 1:
-            labels.append(1)
-            random_image = algorithm_globals.random.integers(0, 12)
-            images.append(np.array(ver_array[random_image]))
-
-        for i in range(16):
-            if images[-1][i] == 0:
-                images[-1][i] = algorithm_globals.random.uniform(0, np.pi / 4)
-    return images, labels
-
-
 print("encode images")
 # images, labels = generate_dataset(50)
 images, labels = amplitude_encode("test_quantum_tetris_dataset")
@@ -210,24 +167,12 @@ print("finished adding observables")
 print("decompose circuit")
 qnn = EstimatorQNN(
     circuit=circuit.decompose(),
-    observables=observables, 
+    observables=observables,
     input_params=feature_map.parameters,
     weight_params=ansatz.parameters,
     estimator=estimator,
 )
 print("finished decomposing circuit")
-
-# circuit.draw("mpl", style="clifford")
-
-def callback_graph(weights, obj_func_eval):
-    # clear_output(wait=True)
-    print(f"Iteration {len(objective_func_vals)}, Objective: {obj_func_eval}")
-    objective_func_vals.append(obj_func_eval)
-    # plt.title("Objective function value against iteration")
-    # plt.xlabel("Iteration")
-    # plt.ylabel("Objective function value")
-    # plt.plot(range(len(objective_func_vals)), objective_func_vals)
-    # plt.show()
 
 num_params = len(ansatz.parameters)
 
@@ -242,18 +187,36 @@ with open("11_qcnn_initial_point.json", "r") as f:
     initial_point = json.load(f)
 print("finished generating initial point")
 
-classifier = NeuralNetworkClassifier(
-    qnn,
-    optimizer=COBYLA(maxiter=100),  # Set max iterations here
+# circuit.draw("mpl", style="clifford")
+
+def callback_graph(weights, obj_func_eval):
+    # clear_output(wait=True)
+    print(f"Iteration {len(objective_func_vals)}, Objective: {obj_func_eval}")
+    objective_func_vals.append(obj_func_eval)
+    # plt.title("Objective function value against iteration")
+    # plt.xlabel("Iteration")
+    # plt.ylabel("Objective function value")
+    # plt.plot(range(len(objective_func_vals)), objective_func_vals)
+    # plt.show()
+
+classifier = VQC(
+    feature_map=feature_map,
+    ansatz=ansatz,
+    loss='cross_entropy',
+    optimizer=COBYLA(maxiter=100),
     callback=callback_graph,
-    initial_point=initial_point,
+    initial_point=initial_point
 )
 
 print("running training images")
 x = np.asarray(train_images)
-enc = OneHotEncoder(sparse_output=False)
+enc = OneHotEncoder(categories=[range(8)], sparse_output=False)
 y = enc.fit_transform(np.array(train_labels).reshape(-1, 1))
 print("finished running training images")
+
+# Manually verify output shape
+test_output = qnn.forward(train_images[0], initial_point)
+print(f"QNN output shape: {test_output.shape}")  # Should be (1, 8)
 
 print("fit training data")
 objective_func_vals = []
@@ -265,13 +228,13 @@ print("finished fitting training data")
 print(f"Accuracy from the train data : {np.round(100 * classifier.score(x, y), 2)}%")
 
 print("running test data") 
-y_predict = classifier.predict(test_images)
 x = np.asarray(test_images)
-y_test_pred = classifier.predict(test_images)
-test_accuracy = np.sum(np.argmax(y_test_pred, axis=1) == test_labels) / len(test_labels)
+# Encode test labels the same way as training labels
+y_test = enc.transform(np.array(test_labels).reshape(-1, 1))  # Use transform() not fit_transform()
+test_accuracy = classifier.score(x, y_test)
 print("finished fitting test data")
 
-print(f"Accuracy from the test data : {np.round(100 * classifier.score(x, y), 2)}%")
+print(f"Accuracy from the test data : {np.round(100 * test_accuracy, 2)}%")
 
 with open("16_qcnn_trained_weights.json", "w") as f:
     json.dump(classifier.weights.tolist(), f)
