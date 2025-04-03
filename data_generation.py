@@ -9,7 +9,7 @@ folder_name = "test_quantum_tetris_dataset"
 # Create directory for the dataset
 os.makedirs(folder_name, exist_ok=True)
 
-num_images = 30
+num_images = 150
 
 # Define the Tetris pieces for 4x4 grid
 # Each piece is represented as a list of (row, col) coordinates
