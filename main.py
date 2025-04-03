@@ -95,11 +95,6 @@ def pool_layer(sources, sinks, param_prefix):
     return qc
 
 
-sources = [0, 1]
-sinks = [2, 3]
-circuit = pool_layer(sources, sinks, "θ")
-# circuit.decompose().draw("mpl", style="clifford")
-
 print("encode images")
 images, labels = amplitude_encode("test_quantum_tetris_dataset")
 print("encoding done")
@@ -158,8 +153,6 @@ observables.append(SparsePauliOp.from_list([("I" * 14 + "XI", 1)]))
 observables.append(SparsePauliOp.from_list([("I" * 14 + "YI", 1)]))
 observables.append(SparsePauliOp.from_list([("I" * 14 + "IZ", 1)]))
 observables.append(SparsePauliOp.from_list([("I" * 14 + "IX", 1)]))
-observables.append(SparsePauliOp.from_list([("I" * 14 + "IY", 1)]))
-observables.append(SparsePauliOp.from_list([("I" * 14 + "ZZ", 1)]))
 print("finished adding observables")
 
 # we decompose the circuit for the QNN to avoid additional data copying
@@ -227,8 +220,7 @@ print(f"Accuracy from the train data : {np.round(100 * classifier.score(x, y), 2
 
 print("running test data") 
 x = np.asarray(test_images)
-# Encode test labels the same way as training labels
-y_test = enc.transform(np.array(test_labels).reshape(-1, 1))  # Use transform() not fit_transform()
+y_test = enc.transform(np.array(test_labels).reshape(-1, 1)) 
 test_accuracy = classifier.score(x, y_test)
 print("finished fitting test data")
 
