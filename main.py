@@ -193,7 +193,7 @@ def callback_graph(weights, obj_func_eval):
 
 classifier = NeuralNetworkClassifier(
     qnn,
-    optimizer=COBYLA(maxiter=5),  # Set max iterations here
+    optimizer=COBYLA(maxiter=10),  # Set max iterations here
     callback=callback_graph,
     initial_point=initial_point,
     one_hot=True
