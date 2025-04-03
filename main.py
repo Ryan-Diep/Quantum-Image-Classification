@@ -94,51 +94,7 @@ def pool_layer(sources, sinks, param_prefix):
     return qc
 
 
-sources = [0, 1]
-sinks = [2, 3]
-circuit = pool_layer(sources, sinks, "θ")
-# circuit.decompose().draw("mpl", style="clifford")
-
-def generate_tetris_dataset(num_samples_per_class=20):
-    """Generate dataset of Tetris blocks with 8 different classes"""
-    block_shapes = {
-        'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece vertical
-        'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece
-        'T': [(0,1), (1,0), (1,1), (1,2)],  # T piece
-        'L': [(0,0), (1,0), (2,0), (2,1)],  # L piece
-        'J': [(0,1), (1,1), (2,0), (2,1)],  # J piece
-        'S': [(0,1), (0,2), (1,0), (1,1)],  # S piece
-        'Z': [(0,0), (0,1), (1,1), (1,2)]   # Z piece
-    }
-    
-    images = []
-    labels = []
-    
-    for block_type, coords in block_shapes.items():
-        for _ in range(num_samples_per_class):
-            image = np.zeros((4, 4))
-            
-            for x, y in coords:
-                image[x, y] = 1
-            
-            for i in range(4):
-                for j in range(4):
-                    if image[i, j] == 0:
-                        image[i, j] = algorithm_globals.random.uniform(0, 0.3)
-            
-            flat_image = image.flatten()
-            encoded_image = np.array([val * np.pi/2 for val in flat_image])
-            
-            images.append(encoded_image)
-            labels.append(block_type)
-    
-    return np.array(images), np.array(labels)
-
 print("encode images")
-# images, labels = generate_tetris_dataset(num_samples_per_class=20)
-
-# images = np.array(images)
-# labels = np.array(labels)
 images, labels = amplitude_encode("test_quantum_tetris_dataset")
 print("encoding done")
 
@@ -196,8 +152,6 @@ observables.append(SparsePauliOp.from_list([("I" * 14 + "XI", 1)]))
 observables.append(SparsePauliOp.from_list([("I" * 14 + "YI", 1)]))
 observables.append(SparsePauliOp.from_list([("I" * 14 + "IZ", 1)]))
 observables.append(SparsePauliOp.from_list([("I" * 14 + "IX", 1)]))
-observables.append(SparsePauliOp.from_list([("I" * 14 + "IY", 1)]))
-observables.append(SparsePauliOp.from_list([("I" * 14 + "ZZ", 1)]))
 print("finished adding observables")
 
 # we decompose the circuit for the QNN to avoid additional data copying
@@ -265,8 +219,7 @@ print(f"Accuracy from the train data : {np.round(100 * classifier.score(x, y), 2
 
 print("running test data") 
 x = np.asarray(test_images)
-# Encode test labels the same way as training labels
-y_test = enc.transform(np.array(test_labels).reshape(-1, 1))  # Use transform() not fit_transform()
+y_test = enc.transform(np.array(test_labels).reshape(-1, 1)) 
 test_accuracy = classifier.score(x, y_test)
 print("finished fitting test data")
 

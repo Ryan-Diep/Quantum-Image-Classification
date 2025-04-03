@@ -14,13 +14,11 @@ num_images = 30
 # Define the Tetris pieces for 4x4 grid
 # Each piece is represented as a list of (row, col) coordinates
 tetris_pieces = {
-    'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece vertical
+    'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece
     'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece (square)
     'T': [(0,1), (1,0), (1,1), (1,2)],  # T piece
     'L': [(0,0), (1,0), (2,0), (2,1)],  # L piece
-    'J': [(0,1), (1,1), (2,0), (2,1)],  # J piece
     'S': [(0,1), (0,2), (1,0), (1,1)],  # S piece
-    'Z': [(0,0), (0,1), (1,1), (1,2)]   # Z piece
 }
 
 label_mapping = {
@@ -28,10 +26,7 @@ label_mapping = {
     'O': 1,
     'T': 2,
     'L': 3,
-    'J': 4,
-    'S': 5,
-    'Z': 6,
-    'X': 7  # For non-Tetris shapes
+    'S': 4,
 }
 
 # Function to rotate a piece
@@ -85,43 +80,35 @@ def generate_random_matrix(idx):
     # Create an empty 4x4 grid
     grid = np.zeros((4, 4))
     
-    # Decide if it's a Tetris piece or non-Tetris shape
-    # is_tetris = random.random() < 0.7  # 70% chance for Tetris pieces
-    is_tetris = True
+    # Select a random Tetris piece
+    piece_type = random.choice(list(tetris_pieces.keys()))
+    piece = tetris_pieces[piece_type]
     
-    if is_tetris:
-        # Select a random Tetris piece
-        piece_type = random.choice(list(tetris_pieces.keys()))
-        piece = tetris_pieces[piece_type]
+    # Randomly rotate the piece
+    rotations = random.randint(0, 3)
+    if rotations > 0:
+        piece = rotate_piece(piece, rotations)
+    
+    # Randomly shift the piece within grid bounds
+    shift_successful = False
+    max_attempts = 10
+    attempts = 0
+    
+    while not shift_successful and attempts < max_attempts:
+        r_shift = random.randint(-3, 3)
+        c_shift = random.randint(-3, 3)
         
-        # Randomly rotate the piece
-        rotations = random.randint(0, 3)
-        if rotations > 0:
-            piece = rotate_piece(piece, rotations)
+        shifted_piece = [(r + r_shift, c + c_shift) for r, c in piece]
         
-        # Randomly shift the piece within grid bounds
-        shift_successful = False
-        max_attempts = 10
-        attempts = 0
+        # Check if the shifted piece is within bounds
+        if all(0 <= r < 4 and 0 <= c < 4 for r, c in shifted_piece):
+            piece = shifted_piece
+            shift_successful = True
         
-        while not shift_successful and attempts < max_attempts:
-            r_shift = random.randint(-3, 3)
-            c_shift = random.randint(-3, 3)
-            
-            shifted_piece = [(r + r_shift, c + c_shift) for r, c in piece]
-            
-            # Check if the shifted piece is within bounds
-            if all(0 <= r < 4 and 0 <= c < 4 for r, c in shifted_piece):
-                piece = shifted_piece
-                shift_successful = True
-            
-            attempts += 1
-        
-        label = piece_type[0]  # Use first letter as label
-    else:
-        # Create a non-Tetris shape
-        piece = random_non_tetris_shape()
-        label = 'X'  # Non-Tetris label
+        attempts += 1
+    
+    label = piece_type[0]  # Use first letter as label
+
     
     # Set the values for the piece blocks (between 0.7 and 1.0)
     for r, c in piece:

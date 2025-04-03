@@ -60,5 +60,3 @@ def amplitude_encode(dataset_dir = "quantum_tetris_dataset"):
     np.save("tetris_labels.npy", np.array(labels))
 
     return np.array(images), np.array(labels)
-
-amplitude_encode("quantum_tetris_dataset")
