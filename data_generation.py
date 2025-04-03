@@ -9,13 +9,12 @@ folder_name = "test_quantum_tetris_dataset"
 # Create directory for the dataset
 os.makedirs(folder_name, exist_ok=True)
 
-num_images = 20
+num_images = 30
 
 # Define the Tetris pieces for 4x4 grid
 # Each piece is represented as a list of (row, col) coordinates
 tetris_pieces = {
     'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece vertical
-    'I2': [(1,0), (1,1), (1,2), (1,3)],  # I piece horizontal
     'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece (square)
     'T': [(0,1), (1,0), (1,1), (1,2)],  # T piece
     'L': [(0,0), (1,0), (2,0), (2,1)],  # L piece
@@ -26,14 +25,13 @@ tetris_pieces = {
 
 label_mapping = {
     'I': 0,
-    'I2': 1,
-    'O': 2,
-    'T': 3,
-    'L': 4,
-    'J': 5,
-    'S': 6,
-    'Z': 7,
-    'X': 8  # For non-Tetris shapes
+    'O': 1,
+    'T': 2,
+    'L': 3,
+    'J': 4,
+    'S': 5,
+    'Z': 6,
+    'X': 7  # For non-Tetris shapes
 }
 
 # Function to rotate a piece

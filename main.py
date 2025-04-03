@@ -99,8 +99,46 @@ sinks = [2, 3]
 circuit = pool_layer(sources, sinks, "θ")
 # circuit.decompose().draw("mpl", style="clifford")
 
+def generate_tetris_dataset(num_samples_per_class=20):
+    """Generate dataset of Tetris blocks with 8 different classes"""
+    block_shapes = {
+        'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece vertical
+        'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece
+        'T': [(0,1), (1,0), (1,1), (1,2)],  # T piece
+        'L': [(0,0), (1,0), (2,0), (2,1)],  # L piece
+        'J': [(0,1), (1,1), (2,0), (2,1)],  # J piece
+        'S': [(0,1), (0,2), (1,0), (1,1)],  # S piece
+        'Z': [(0,0), (0,1), (1,1), (1,2)]   # Z piece
+    }
+    
+    images = []
+    labels = []
+    
+    for block_type, coords in block_shapes.items():
+        for _ in range(num_samples_per_class):
+            image = np.zeros((4, 4))
+            
+            for x, y in coords:
+                image[x, y] = 1
+            
+            for i in range(4):
+                for j in range(4):
+                    if image[i, j] == 0:
+                        image[i, j] = algorithm_globals.random.uniform(0, 0.3)
+            
+            flat_image = image.flatten()
+            encoded_image = np.array([val * np.pi/2 for val in flat_image])
+            
+            images.append(encoded_image)
+            labels.append(block_type)
+    
+    return np.array(images), np.array(labels)
+
 print("encode images")
-# images, labels = generate_dataset(50)
+# images, labels = generate_tetris_dataset(num_samples_per_class=20)
+
+# images = np.array(images)
+# labels = np.array(labels)
 images, labels = amplitude_encode("test_quantum_tetris_dataset")
 print("encoding done")
 
@@ -153,14 +191,13 @@ circuit.compose(ansatz, range(16), inplace=True)
 
 print("adding observables")
 observables = []
-observables.append(SparsePauliOp.from_list([("Z" + "I" * 15, 1)]))
-observables.append(SparsePauliOp.from_list([("I" + "X" + "I" * 14, 1)]))
-observables.append(SparsePauliOp.from_list([("ZZ" + "I" * 14, 1)]))
-observables.append(SparsePauliOp.from_list([("ZX" + "I" * 14, 1)]))
-observables.append(SparsePauliOp.from_list([("XZ" + "I" * 14, 1)]))
-observables.append(SparsePauliOp.from_list([("XX" + "I" * 14, 1)]))
-observables.append(SparsePauliOp.from_list([("YZ" + "I" * 14, 1)]))
-observables.append(SparsePauliOp.from_list([("ZY" + "I" * 14, 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "ZI", 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "XI", 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "YI", 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "IZ", 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "IX", 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "IY", 1)]))
+observables.append(SparsePauliOp.from_list([("I" * 14 + "ZZ", 1)]))
 print("finished adding observables")
 
 # we decompose the circuit for the QNN to avoid additional data copying
@@ -199,18 +236,17 @@ def callback_graph(weights, obj_func_eval):
     # plt.plot(range(len(objective_func_vals)), objective_func_vals)
     # plt.show()
 
-classifier = VQC(
-    feature_map=feature_map,
-    ansatz=ansatz,
-    loss='cross_entropy',
-    optimizer=COBYLA(maxiter=100),
+classifier = NeuralNetworkClassifier(
+    qnn,
+    optimizer=COBYLA(maxiter=100),  # Set max iterations here
     callback=callback_graph,
-    initial_point=initial_point
+    initial_point=initial_point,
+    one_hot=True
 )
 
 print("running training images")
 x = np.asarray(train_images)
-enc = OneHotEncoder(categories=[range(8)], sparse_output=False)
+enc = OneHotEncoder(sparse_output=False)
 y = enc.fit_transform(np.array(train_labels).reshape(-1, 1))
 print("finished running training images")
 
@@ -236,8 +272,8 @@ print("finished fitting test data")
 
 print(f"Accuracy from the test data : {np.round(100 * test_accuracy, 2)}%")
 
-with open("16_qcnn_trained_weights.json", "w") as f:
-    json.dump(classifier.weights.tolist(), f)
+# with open("16_qcnn_trained_weights.json", "w") as f:
+#     json.dump(classifier.weights.tolist(), f)
 
 # Let's see some examples in our dataset
 # fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
