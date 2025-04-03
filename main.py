@@ -1,6 +1,7 @@
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 from IPython.display import clear_output
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
@@ -99,46 +100,7 @@ sinks = [2, 3]
 circuit = pool_layer(sources, sinks, "θ")
 # circuit.decompose().draw("mpl", style="clifford")
 
-def generate_tetris_dataset(num_samples_per_class=20):
-    """Generate dataset of Tetris blocks with 8 different classes"""
-    block_shapes = {
-        'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece vertical
-        'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece
-        'T': [(0,1), (1,0), (1,1), (1,2)],  # T piece
-        'L': [(0,0), (1,0), (2,0), (2,1)],  # L piece
-        'J': [(0,1), (1,1), (2,0), (2,1)],  # J piece
-        'S': [(0,1), (0,2), (1,0), (1,1)],  # S piece
-        'Z': [(0,0), (0,1), (1,1), (1,2)]   # Z piece
-    }
-    
-    images = []
-    labels = []
-    
-    for block_type, coords in block_shapes.items():
-        for _ in range(num_samples_per_class):
-            image = np.zeros((4, 4))
-            
-            for x, y in coords:
-                image[x, y] = 1
-            
-            for i in range(4):
-                for j in range(4):
-                    if image[i, j] == 0:
-                        image[i, j] = algorithm_globals.random.uniform(0, 0.3)
-            
-            flat_image = image.flatten()
-            encoded_image = np.array([val * np.pi/2 for val in flat_image])
-            
-            images.append(encoded_image)
-            labels.append(block_type)
-    
-    return np.array(images), np.array(labels)
-
 print("encode images")
-# images, labels = generate_tetris_dataset(num_samples_per_class=20)
-
-# images = np.array(images)
-# labels = np.array(labels)
 images, labels = amplitude_encode("test_quantum_tetris_dataset")
 print("encoding done")
 
@@ -238,7 +200,7 @@ def callback_graph(weights, obj_func_eval):
 
 classifier = NeuralNetworkClassifier(
     qnn,
-    optimizer=COBYLA(maxiter=100),  # Set max iterations here
+    optimizer=COBYLA(maxiter=5),  # Set max iterations here
     callback=callback_graph,
     initial_point=initial_point,
     one_hot=True
@@ -284,3 +246,5 @@ print(f"Accuracy from the test data : {np.round(100 * test_accuracy, 2)}%")
 #     if y_predict[i] == +1:
 #         ax[i // 2, i % 2].set_title("The QCNN predicts this is a Vertical Line")
 # plt.subplots_adjust(wspace=0.1, hspace=0.5)
+
+classifier.save("tetris_classifier.model")
