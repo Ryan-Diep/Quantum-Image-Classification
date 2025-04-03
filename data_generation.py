@@ -9,7 +9,7 @@ folder_name = "test_quantum_tetris_dataset"
 # Create directory for the dataset
 os.makedirs(folder_name, exist_ok=True)
 
-num_images = 30
+num_images = 150
 
 # Define the Tetris pieces for 4x4 grid
 # Each piece is represented as a list of (row, col) coordinates
@@ -110,16 +110,16 @@ def generate_random_matrix(idx):
     label = piece_type[0]  # Use first letter as label
 
     
-    # Set the values for the piece blocks (between 0.7 and 1.0)
+    # Set the values for the piece blocks (between 0.9 and 1.0)
     for r, c in piece:
         if 0 <= r < 4 and 0 <= c < 4:  # Ensure it's within bounds
-            grid[r, c] = random.uniform(0.7, 1.0)
+            grid[r, c] = random.uniform(0.9, 1.0)
     
-    # Set background pixel values (between 0 and 0.3)
+    # Set background pixel values (between 0 and 0.1)
     for r in range(4):
         for c in range(4):
             if grid[r, c] == 0:
-                grid[r, c] = random.uniform(0, 0.3)
+                grid[r, c] = random.uniform(0, 0.1)
     
     # Add some noise to the image
     noise = np.random.uniform(-0.05, 0.05, (4, 4))
