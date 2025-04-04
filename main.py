@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from amplitudeEmbedding import amplitude_encode
 
-algorithm_globals.random_seed = 12345
+algorithm_globals.random_seed = 482988
 estimator = Estimator()
 
 # We now define a two qubit unitary as defined in [3]
@@ -94,10 +94,48 @@ def pool_layer(sources, sinks, param_prefix):
     qc.append(qc_inst, range(num_qubits))
     return qc
 
+def generate_tetris_dataset(num_samples_per_class=200):
+    """Generate dataset of Tetris blocks with 8 different classes"""
+    block_shapes = {
+        'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece
+        'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece (square)
+        'T': [(0,1), (1,0), (1,1), (1,2)],  # T piece
+        'L': [(0,0), (1,0), (2,0), (2,1)],  # L piece
+        'S': [(0,1), (0,2), (1,0), (1,1)],  # S piece
+    }
+    
+    images = []
+    labels = []
+    
+    for block_type, coords in block_shapes.items():
+        for _ in range(num_samples_per_class):
+            image = np.zeros((4, 4))
+            
+            for x, y in coords:
+                image[x, y] = 1
+            
+            for i in range(4):
+                for j in range(4):
+                    if image[i, j] == 0:
+                        image[i, j] = algorithm_globals.random.uniform(0, 0.3)
+            
+            flat_image = image.flatten()
+            encoded_image = np.array([val * np.pi/2 for val in flat_image])
+            
+            images.append(encoded_image)
+            labels.append(block_type)
+    
+    return np.array(images), np.array(labels)
 
 print("encode images")
-images, labels = amplitude_encode("test_quantum_tetris_dataset")
+images, labels = generate_tetris_dataset(num_samples_per_class=20)
+
+# images, labels = amplitude_encode("test_quantum_tetris_dataset")
 print("encoding done")
+
+# print("encode images")
+# images, labels = amplitude_encode("test_quantum_tetris_dataset")
+# print("encoding done")
 
 print("split data")
 train_images, test_images, train_labels, test_labels = train_test_split(
@@ -169,15 +207,18 @@ print("finished decomposing circuit")
 num_params = len(ansatz.parameters)
 
 # Generate random  point
-print("generate random point")
-initial_point = np.random.uniform(-np.pi, np.pi, num_params)
+# print("generate random point")
+# initial_point = np.random.uniform(-np.pi, np.pi, num_params)
 
-with open("11_qcnn_initial_point.json", "w") as f:
-    json.dump(initial_point.tolist(), f)
+# with open("11_qcnn_initial_point.json", "w") as f:
+#     json.dump(initial_point.tolist(), f)
 
-with open("11_qcnn_initial_point.json", "r") as f:
+# with open("11_qcnn_initial_point.json", "r") as f:
+#     initial_point = json.load(f)
+# print("finished generating initial point")
+
+with open("16_qcnn_trained_weights.json", "r") as f:
     initial_point = json.load(f)
-print("finished generating initial point")
 
 # circuit.draw("mpl", style="clifford")
 
@@ -193,7 +234,7 @@ def callback_graph(weights, obj_func_eval):
 
 classifier = NeuralNetworkClassifier(
     qnn,
-    optimizer=COBYLA(maxiter=10),  # Set max iterations here
+    optimizer=COBYLA(maxiter=100),  # Set max iterations here
     callback=callback_graph,
     initial_point=initial_point,
     one_hot=True
@@ -226,8 +267,11 @@ print("finished fitting test data")
 
 print(f"Accuracy from the test data : {np.round(100 * test_accuracy, 2)}%")
 
-# with open("16_qcnn_trained_weights.json", "w") as f:
-#     json.dump(classifier.weights.tolist(), f)
+with open("onehot_encoder.pkl", "wb") as f:
+    pickle.dump(enc, f)
+
+with open("16_qcnn_trained_weights.json", "w") as f:
+    json.dump(classifier.weights.tolist(), f)
 
 # Let's see some examples in our dataset
 # fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
