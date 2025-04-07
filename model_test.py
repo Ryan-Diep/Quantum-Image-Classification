@@ -9,15 +9,54 @@ from qiskit.primitives import Estimator
 with open("onehot_encoder.pkl", "rb") as f:
     enc = pickle.load(f)
 
-def classify_new_image(new_image):
-    loaded_classifier = NeuralNetworkClassifier.load('tetris_classifier.model')
+classifier = NeuralNetworkClassifier.load("tetris_classifier.model")
 
-    prediction = loaded_classifier.predict(new_image.reshape(1, -1))
-    
-    predicted_label = enc.inverse_transform(prediction)[0][0]
-    
-    return predicted_label
+# L
+new_image = np.array([
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 1],
+    [0, 1, 1, 1]
+])
 
-new_image = np.load('./test_quantum_tetris_dataset/tetris_0024.npy')
-predicted_class = classify_new_image(new_image)
-print(f"The image is classified as: {predicted_class}")
+# O
+# new_image = np.array([
+#     [0, 0, 0, 0],
+#     [0, 1, 1, 0],
+#     [0, 1, 1, 0],
+#     [0, 0, 0, 0]
+# ])
+
+# I
+# new_image = np.array([
+#     [0, 1, 0, 0],
+#     [0, 1, 0, 0],
+#     [0, 1, 0, 0],
+#     [0, 1, 0, 0]
+# ])
+
+# S
+# new_image = np.array([
+#     [0, 0, 0, 0],
+#     [1, 0, 0, 0],
+#     [1, 1, 0, 0],
+#     [0, 1, 0, 0]
+# ])
+
+# T (sometimes)
+# new_image = np.array([
+#     [0, 0, 0, 0],
+#     [0, 0, 1, 0],
+#     [0, 1, 1, 0],
+#     [0, 0, 1, 0]
+# ])
+
+for i in range(4):
+    for j in range(4):
+        if new_image[i, j] == 0:
+            new_image[i, j] = np.random.uniform(0, 0.3)
+
+encoded_image = np.array([val * np.pi/2 for val in new_image.flatten()])
+prediction = classifier.predict([encoded_image])
+predicted_label = enc.inverse_transform(prediction)
+print(f"Predicted block type: {predicted_label[0]}")
