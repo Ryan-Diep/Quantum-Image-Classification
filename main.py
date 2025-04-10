@@ -60,7 +60,6 @@ def conv_layer(num_qubits, param_prefix):
 
 
 circuit = conv_layer(4, "θ")
-# circuit.decompose().draw("mpl", style="clifford")
 
 def pool_circuit(params):
     target = QuantumCircuit(2)
@@ -76,7 +75,6 @@ def pool_circuit(params):
 
 params = ParameterVector("θ", length=3)
 circuit = pool_circuit(params)
-# circuit.draw("mpl", style="clifford")
 
 def pool_layer(sources, sinks, param_prefix):
     num_qubits = len(sources) + len(sinks)
@@ -95,7 +93,7 @@ def pool_layer(sources, sinks, param_prefix):
     return qc
 
 def generate_tetris_dataset(num_samples_per_class=200):
-    """Generate dataset of Tetris blocks with 8 different classes"""
+    """Generate dataset of Tetris blocks with 5 different classes"""
     block_shapes = {
         'I': [(0,1), (1,1), (2,1), (3,1)],  # I piece
         'O': [(0,0), (0,1), (1,0), (1,1)],  # O piece (square)
@@ -128,28 +126,15 @@ def generate_tetris_dataset(num_samples_per_class=200):
     return np.array(images), np.array(labels)
 
 print("encode images")
-images, labels = generate_tetris_dataset(num_samples_per_class=20)
+images, labels = generate_tetris_dataset(100)
 
-# images, labels = amplitude_encode("test_quantum_tetris_dataset")
 print("encoding done")
-
-# print("encode images")
-# images, labels = amplitude_encode("test_quantum_tetris_dataset")
-# print("encoding done")
 
 print("split data")
 train_images, test_images, train_labels, test_labels = train_test_split(
     images, labels, test_size=0.3, random_state=246
 )
 print("finished splitting")
-
-# fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
-# for i in range(4):
-#     ax[i // 2, i % 2].imshow(
-#         train_images[i].reshape(4, 4),
-#         aspect="equal",
-#     )
-# plt.subplots_adjust(wspace=0.1, hspace=0.025)
 
 feature_map = ZFeatureMap(16)
 
@@ -220,21 +205,14 @@ num_params = len(ansatz.parameters)
 with open("16_qcnn_trained_weights.json", "r") as f:
     initial_point = json.load(f)
 
-# circuit.draw("mpl", style="clifford")
-
 def callback_graph(weights, obj_func_eval):
-    # clear_output(wait=True)
     print(f"Iteration {len(objective_func_vals)}, Objective: {obj_func_eval}")
     objective_func_vals.append(obj_func_eval)
-    # plt.title("Objective function value against iteration")
-    # plt.xlabel("Iteration")
-    # plt.ylabel("Objective function value")
-    # plt.plot(range(len(objective_func_vals)), objective_func_vals)
-    # plt.show()
 
+# classifier properities 
 classifier = NeuralNetworkClassifier(
     qnn,
-    optimizer=COBYLA(maxiter=100),  # Set max iterations here
+    optimizer=COBYLA(maxiter=1000),  # Set max iterations here
     callback=callback_graph,
     initial_point=initial_point,
     one_hot=True
@@ -272,15 +250,5 @@ with open("onehot_encoder.pkl", "wb") as f:
 
 with open("16_qcnn_trained_weights.json", "w") as f:
     json.dump(classifier.weights.tolist(), f)
-
-# Let's see some examples in our dataset
-# fig, ax = plt.subplots(2, 2, figsize=(10, 6), subplot_kw={"xticks": [], "yticks": []})
-# for i in range(0, 4):
-#     ax[i // 2, i % 2].imshow(test_images[i].reshape(4, 4), aspect="equal")
-#     if y_predict[i] == -1:
-#         ax[i // 2, i % 2].set_title("The QCNN predicts this is a Horizontal Line")
-#     if y_predict[i] == +1:
-#         ax[i // 2, i % 2].set_title("The QCNN predicts this is a Vertical Line")
-# plt.subplots_adjust(wspace=0.1, hspace=0.5)
 
 classifier.save("tetris_classifier.model")

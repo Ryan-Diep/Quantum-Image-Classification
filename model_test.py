@@ -12,12 +12,12 @@ with open("onehot_encoder.pkl", "rb") as f:
 classifier = NeuralNetworkClassifier.load("tetris_classifier.model")
 
 # L
-new_image = np.array([
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 1],
-    [0, 1, 1, 1]
-])
+# new_image = np.array([
+#     [0, 0, 0, 0],
+#     [0, 0, 0, 0],
+#     [0, 0, 0, 1],
+#     [0, 1, 1, 1]
+# ])
 
 # O
 # new_image = np.array([
@@ -36,7 +36,7 @@ new_image = np.array([
 # ])
 
 # S
-# new_image = np.array([
+# new_image = np.array([  
 #     [0, 0, 0, 0],
 #     [1, 0, 0, 0],
 #     [1, 1, 0, 0],
@@ -44,19 +44,22 @@ new_image = np.array([
 # ])
 
 # T (sometimes)
-# new_image = np.array([
-#     [0, 0, 0, 0],
-#     [0, 0, 1, 0],
-#     [0, 1, 1, 0],
-#     [0, 0, 1, 0]
-# ])
+new_image = np.array([
+    [0, 0, 0, 0],
+    [0, 0, 1, 0],
+    [0, 1, 1, 1],
+    [0, 0, 0, 0]
+])
 
+# adding noise to image
 for i in range(4):
     for j in range(4):
         if new_image[i, j] == 0:
             new_image[i, j] = np.random.uniform(0, 0.3)
 
 encoded_image = np.array([val * np.pi/2 for val in new_image.flatten()])
+
+# model predicts the block type
 prediction = classifier.predict([encoded_image])
 predicted_label = enc.inverse_transform(prediction)
 print(f"Predicted block type: {predicted_label[0]}")
